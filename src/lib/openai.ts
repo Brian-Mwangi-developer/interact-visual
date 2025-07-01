@@ -1,0 +1,207 @@
+// lib/openai.ts
+import OpenAI from 'openai';
+
+// if (!process.env.OPENAI_API_KEY) {
+//     throw new Error('OPENAI_API_KEY is not defined in environment variables');
+// }
+
+export const openai = new OpenAI({
+    apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY!,
+    dangerouslyAllowBrowser: true
+});
+
+// Types for our drawing operations
+export interface DrawingInstruction {
+    type: 'text' | 'line' | 'arrow' | 'rectangle' | 'ellipse' | 'freedraw';
+    content?: string;
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
+    endX?: number;
+    endY?: number;
+    fontSize?: number;
+    color?: string;
+    strokeWidth?: number;
+    delay?: number; // For step-by-step drawing
+}
+
+export interface StepByStepResponse {
+    explanation: string;
+    drawingInstructions: DrawingInstruction[];
+    stepNumber: number;
+    totalSteps: number;
+}
+
+// Function to generate step-by-step drawing instructions
+export async function generateStepByStepDrawing(
+    question: string,
+    subject: string = 'mathematics'
+): Promise<StepByStepResponse[]> {
+    try {
+        const prompt = `
+You are an expert ${subject} tutor who creates step-by-step visual explanations.
+Given the question: "${question}"
+
+Please provide a detailed step-by-step solution that can be drawn on a canvas. 
+For each step, provide:
+1. A clear explanation of what's happening
+2. Specific drawing instructions with coordinates (assuming canvas is 800x600)
+3. Use coordinates that create a logical flow from top to bottom
+
+Format your response as a JSON array where each step has:
+{
+  "explanation": "Clear explanation of this step",
+  "drawingInstructions": [
+    {
+      "type": "text|line|arrow|rectangle|ellipse",
+      "content": "text content if applicable",
+      "x": number,
+      "y": number,
+      "width": number (optional),
+      "height": number (optional),
+      "endX": number (for lines/arrows),
+      "endY": number (for lines/arrows),
+      "fontSize": number (default 16),
+      "color": "color code",
+      "strokeWidth": number (default 2),
+      "delay": number (milliseconds delay before drawing)
+    }
+  ],
+  "stepNumber": number,
+  "totalSteps": number
+}
+
+Keep coordinates within 800x600 canvas. Start from top (y=50) and work downward.
+Make the drawing clear and educational.
+`;
+
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are an expert educational tutor who creates visual step-by-step explanations. Always respond with valid JSON.'
+                },
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 2000,
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+            throw new Error('No response from OpenAI');
+        }
+
+        // Parse the JSON response
+        const steps = JSON.parse(content) as StepByStepResponse[];
+        return steps;
+
+    } catch (error) {
+        console.error('Error generating step-by-step drawing:', error);
+
+        // Fallback response
+        return [{
+            explanation: "I'll solve this step by step",
+            drawingInstructions: [
+                {
+                    type: 'text',
+                    content: question,
+                    x: 100,
+                    y: 50,
+                    fontSize: 18,
+                    color: '#1f2937'
+                }
+            ],
+            stepNumber: 1,
+            totalSteps: 1
+        }];
+    }
+}
+
+// Function to convert text to simple drawing instructions
+export async function textToDrawingInstructions(
+    text: string,
+    startX: number = 100,
+    startY: number = 100
+): Promise<DrawingInstruction[]> {
+    const instructions: DrawingInstruction[] = [];
+
+    // Simple text parsing - you can enhance this with more sophisticated parsing
+    const lines = text.split('\n');
+    let currentY = startY;
+
+    lines.forEach((line, index) => {
+        if (line.trim()) {
+            instructions.push({
+                type: 'text',
+                content: line.trim(),
+                x: startX,
+                y: currentY,
+                fontSize: 16,
+                color: '#374151',
+                delay: index * 500 // Stagger the text appearance
+            });
+            currentY += 30;
+        }
+    });
+
+    return instructions;
+}
+
+// Function to generate math equation drawings
+export async function generateMathVisualization(
+    equation: string,
+    steps: string[]
+): Promise<DrawingInstruction[]> {
+    const instructions: DrawingInstruction[] = [];
+    let currentY = 80;
+
+    // Draw the original equation
+    instructions.push({
+        type: 'text',
+        content: `Original equation: ${equation}`,
+        x: 100,
+        y: currentY,
+        fontSize: 18,
+        color: '#1f2937',
+        delay: 0
+    });
+
+    currentY += 50;
+
+    // Draw each step
+    steps.forEach((step, index) => {
+        instructions.push({
+            type: 'text',
+            content: `Step ${index + 1}: ${step}`,
+            x: 120,
+            y: currentY,
+            fontSize: 16,
+            color: '#4b5563',
+            delay: (index + 1) * 1000
+        });
+
+        // Add an arrow to show progression
+        if (index < steps.length - 1) {
+            instructions.push({
+                type: 'arrow',
+                x: 100,
+                y: currentY + 20,
+                endX: 100,
+                endY: currentY + 40,
+                color: '#3b82f6',
+                strokeWidth: 2,
+                delay: (index + 1) * 1000 + 500
+            });
+        }
+
+        currentY += 60;
+    });
+
+    return instructions;
+}
