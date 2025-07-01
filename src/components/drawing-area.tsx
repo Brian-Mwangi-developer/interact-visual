@@ -47,11 +47,12 @@ export const DrawingArea: React.FC<DrawingAreaProps> = ({ subject = "mathematics
 
             // Generate AI response with drawing instructions
             const aiSteps = await generateStepByStepDrawing(message, subject);
+            console.log("AI Steps:", aiSteps);
             setSteps(aiSteps);
 
             if (aiSteps.length > 0) {
-                // Add title to the first step
-                const titleElement = createTitle(`Question: ${message}`);
+                // Add title to the first step positioned in visible area
+                const titleElement = createTitle(`Question: ${message}`, 100);
 
                 // Start with just the title
                 if (excalidrawRef.current) {
@@ -78,7 +79,7 @@ export const DrawingArea: React.FC<DrawingAreaProps> = ({ subject = "mathematics
         setIsPlaying(true);
         let stepIndex = 0;
 
-        const titleElement = createTitle(`Question: ${message}`);
+        const titleElement = createTitle(`Question: ${message}`, 100);
         let allElements: ExcalidrawElement[] = [titleElement];
 
         const playNextStep = () => {
@@ -91,12 +92,12 @@ export const DrawingArea: React.FC<DrawingAreaProps> = ({ subject = "mathematics
             setCurrentStep(stepIndex + 1);
             setCurrentExplanation(currentStepData.explanation);
 
-            // Add step indicator
+            // Add step indicator positioned properly
             const stepIndicator = createStepIndicator(
                 stepIndex + 1,
                 steps.length,
-                50,
-                50
+                100,
+                150
             );
 
             // Group elements by delay for this step
@@ -146,7 +147,7 @@ export const DrawingArea: React.FC<DrawingAreaProps> = ({ subject = "mathematics
         setCurrentExplanation(steps.length > 0 ? steps[0].explanation : "");
 
         if (excalidrawRef.current) {
-            const titleElement = createTitle(`Question: ${message}`);
+            const titleElement = createTitle(`Question: ${message}`, 100);
             excalidrawRef.current.updateScene({
                 elements: [titleElement],
             });

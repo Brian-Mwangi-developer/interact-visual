@@ -7,7 +7,12 @@ export const generateId = (): string => {
     return Math.random().toString(36).substr(2, 9);
 };
 
-// Utility to create proper Excalidraw elements using a more reliable approach
+// Generate fractional index (Excalidraw requirement)
+export const generateFractionalIndex = (): string => {
+    return Math.random().toString(36).substr(2, 9);
+};
+
+// Utility to create proper Excalidraw elements with correct types
 export function createExcalidrawElement(
     instruction: DrawingInstruction,
     index: number
@@ -35,8 +40,7 @@ export function createExcalidrawElement(
         updated: Date.now(),
         link: null,
         locked: false,
-        version: 1,
-        index: index,
+        index: generateFractionalIndex(), // This needs to be a string (FractionalIndex)
         customData: null
     };
 
@@ -60,19 +64,21 @@ export function createExcalidrawElement(
                 baseline: textHeight,
                 lineHeight: 1.25,
                 autoResize: true
-            } as unknown as ExcalidrawElement;
+            } as ExcalidrawElement;
         }
 
         case 'line': {
-            const width = Math.abs((instruction.endX || instruction.x) - instruction.x);
-            const height = Math.abs((instruction.endY || instruction.y) - instruction.y);
+            const endX = instruction.endX || instruction.x + 100;
+            const endY = instruction.endY || instruction.y;
+            const width = Math.abs(endX - instruction.x);
+            const height = Math.abs(endY - instruction.y);
 
             return {
                 ...baseProps,
                 type: 'line',
                 points: [
                     [0, 0],
-                    [(instruction.endX || instruction.x) - instruction.x, (instruction.endY || instruction.y) - instruction.y]
+                    [endX - instruction.x, endY - instruction.y]
                 ],
                 lastCommittedPoint: null,
                 startBinding: null,
@@ -81,19 +87,21 @@ export function createExcalidrawElement(
                 endArrowhead: null,
                 width: Math.max(width, 1),
                 height: Math.max(height, 1),
-            } as unknown as ExcalidrawElement;
+            } as ExcalidrawElement;
         }
 
         case 'arrow': {
-            const width = Math.abs((instruction.endX || instruction.x) - instruction.x);
-            const height = Math.abs((instruction.endY || instruction.y) - instruction.y);
+            const endX = instruction.endX || instruction.x + 100;
+            const endY = instruction.endY || instruction.y + 50;
+            const width = Math.abs(endX - instruction.x);
+            const height = Math.abs(endY - instruction.y);
 
             return {
                 ...baseProps,
                 type: 'arrow',
                 points: [
                     [0, 0],
-                    [(instruction.endX || instruction.x) - instruction.x, (instruction.endY || instruction.y) - instruction.y]
+                    [endX - instruction.x, endY - instruction.y]
                 ],
                 lastCommittedPoint: null,
                 startBinding: null,
@@ -102,7 +110,7 @@ export function createExcalidrawElement(
                 endArrowhead: 'arrow' as const,
                 width: Math.max(width, 1),
                 height: Math.max(height, 1),
-            } as unknown as ExcalidrawElement;
+            } as ExcalidrawElement;
         }
 
         case 'rectangle': {
@@ -111,7 +119,7 @@ export function createExcalidrawElement(
                 type: 'rectangle',
                 width: instruction.width || 100,
                 height: instruction.height || 50,
-            } as unknown as ExcalidrawElement;
+            } as ExcalidrawElement;
         }
 
         case 'ellipse': {
@@ -120,7 +128,7 @@ export function createExcalidrawElement(
                 type: 'ellipse',
                 width: instruction.width || 100,
                 height: instruction.height || 50,
-            } as unknown as ExcalidrawElement;
+            } as ExcalidrawElement;
         }
 
         default: {
@@ -143,7 +151,7 @@ export function createExcalidrawElement(
                 baseline: 16,
                 lineHeight: 1.25,
                 autoResize: true
-            } as unknown as ExcalidrawElement;
+            } as ExcalidrawElement;
         }
     }
 }
@@ -199,24 +207,24 @@ export function formatMathText(text: string): string {
         .replace(/infinity/g, '∞');
 }
 
-// Create a title element for the canvas
-export function createTitle(title: string, y: number = 20): ExcalidrawElement {
+// Create a title element for the canvas - positioned in visible area
+export function createTitle(title: string, y: number = 100): ExcalidrawElement {
     return createExcalidrawElement({
         type: 'text',
         content: title,
-        x: 50,
+        x: 100, // Moved to visible area
         y: y,
         fontSize: 20,
         color: '#1f2937'
     }, 0);
 }
 
-// Create a step indicator
+// Create a step indicator - positioned in visible area
 export function createStepIndicator(
     stepNumber: number,
     totalSteps: number,
-    x: number = 50,
-    y: number = 50
+    x: number = 100,
+    y: number = 150
 ): ExcalidrawElement {
     return createExcalidrawElement({
         type: 'text',
@@ -246,7 +254,7 @@ export function createContentBox(
     }, 0);
 }
 
-// Helper to create mathematical expressions with proper spacing
+// Helper to create mathematical expressions with proper spacing - positioned in visible area
 export function createMathExpression(
     expression: string,
     x: number,
@@ -283,4 +291,17 @@ export function createSeparator(
         color: color,
         strokeWidth: 1
     }, 0);
+}
+
+// Get canvas center coordinates for better positioning
+export function getCanvasCenter(): { x: number; y: number } {
+    return { x: 400, y: 300 }; // Assuming standard canvas size
+}
+
+// Helper to position elements in a readable flow
+export function getNextPosition(currentY: number, spacing: number = 40): { x: number; y: number } {
+    return {
+        x: 100, // Standard left margin
+        y: currentY + spacing
+    };
 }
