@@ -1,9 +1,9 @@
 // lib/openai.ts
 import OpenAI from 'openai';
 
-// if (!process.env.OPENAI_API_KEY) {
-//     throw new Error('OPENAI_API_KEY is not defined in environment variables');
-// }
+if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not defined in environment variables');
+}
 
 export const openai = new OpenAI({
     apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY!,
@@ -46,8 +46,16 @@ Given the question: "${question}"
 Please provide a detailed step-by-step solution that can be drawn on a canvas. 
 For each step, provide:
 1. A clear explanation of what's happening
-2. Specific drawing instructions with coordinates (assuming canvas is 800x600)
-3. Use coordinates that create a logical flow from top to bottom
+2. Specific drawing instructions with coordinates
+
+IMPORTANT POSITIONING GUIDELINES:
+- Canvas visible area is approximately 800x600 pixels
+- Start content at y=200 (to avoid overlap with title/step indicator)
+- Use x=100 as the left margin for text
+- Space text elements 40-50 pixels apart vertically
+- For mathematical expressions, use larger font sizes (18-24)
+- For explanatory text, use 16px font size
+- Keep all content within x=100 to x=700 and y=200 to y=500
 
 Format your response as a JSON array where each step has:
 {
@@ -56,15 +64,15 @@ Format your response as a JSON array where each step has:
     {
       "type": "text|line|arrow|rectangle|ellipse",
       "content": "text content if applicable",
-      "x": number,
-      "y": number,
+      "x": 100-700,
+      "y": 200-500,
       "width": number (optional),
       "height": number (optional),
       "endX": number (for lines/arrows),
       "endY": number (for lines/arrows),
-      "fontSize": number (default 16),
-      "color": "color code",
-      "strokeWidth": number (default 2),
+      "fontSize": 16-24,
+      "color": "#1f2937|#3b82f6|#dc2626",
+      "strokeWidth": 1-3,
       "delay": number (milliseconds delay before drawing)
     }
   ],
@@ -72,8 +80,13 @@ Format your response as a JSON array where each step has:
   "totalSteps": number
 }
 
-Keep coordinates within 800x600 canvas. Start from top (y=50) and work downward.
-Make the drawing clear and educational.
+EXAMPLE for a math problem:
+- Step 1: Write the original equation at y=200
+- Step 2: Show the first transformation at y=250
+- Step 3: Show the next step at y=300
+- etc.
+
+Make sure the drawing is clearly visible and educational.
 `;
 
         const response = await openai.chat.completions.create({
@@ -81,7 +94,7 @@ Make the drawing clear and educational.
             messages: [
                 {
                     role: 'system',
-                    content: 'You are an expert educational tutor who creates visual step-by-step explanations. Always respond with valid JSON.'
+                    content: 'You are an expert educational tutor who creates visual step-by-step explanations. Always respond with valid JSON. Ensure all coordinates are within the visible canvas area (x: 100-700, y: 200-500).'
                 },
                 {
                     role: 'user',
@@ -99,22 +112,46 @@ Make the drawing clear and educational.
 
         // Parse the JSON response
         const steps = JSON.parse(content) as StepByStepResponse[];
-        return steps;
+        console.log("Steps Explanation is:", content)
+
+        // Validate and fix coordinates if needed
+        const validatedSteps = steps.map(step => ({
+            ...step,
+            drawingInstructions: step.drawingInstructions.map(instruction => ({
+                ...instruction,
+                x: Math.max(100, Math.min(700, instruction.x)),
+                y: Math.max(200, Math.min(500, instruction.y)),
+                fontSize: instruction.fontSize || 16,
+                color: instruction.color || '#1f2937'
+            }))
+        }));
+
+        return validatedSteps;
 
     } catch (error) {
         console.error('Error generating step-by-step drawing:', error);
 
-        // Fallback response
+        // Fallback response with proper positioning
         return [{
-            explanation: "I'll solve this step by step",
+            explanation: "Let me help you solve this step by step",
             drawingInstructions: [
                 {
                     type: 'text',
-                    content: question,
+                    content: `Problem: ${question}`,
                     x: 100,
-                    y: 50,
+                    y: 200,
                     fontSize: 18,
-                    color: '#1f2937'
+                    color: '#1f2937',
+                    delay: 0
+                },
+                {
+                    type: 'text',
+                    content: "I'll work through this systematically...",
+                    x: 100,
+                    y: 250,
+                    fontSize: 16,
+                    color: '#4b5563',
+                    delay: 1000
                 }
             ],
             stepNumber: 1,
@@ -123,11 +160,11 @@ Make the drawing clear and educational.
     }
 }
 
-// Function to convert text to simple drawing instructions
+// Function to convert text to simple drawing instructions with proper positioning
 export async function textToDrawingInstructions(
     text: string,
     startX: number = 100,
-    startY: number = 100
+    startY: number = 200
 ): Promise<DrawingInstruction[]> {
     const instructions: DrawingInstruction[] = [];
 
@@ -146,20 +183,20 @@ export async function textToDrawingInstructions(
                 color: '#374151',
                 delay: index * 500 // Stagger the text appearance
             });
-            currentY += 30;
+            currentY += 40; // Proper spacing between lines
         }
     });
 
     return instructions;
 }
 
-// Function to generate math equation drawings
+// Function to generate math equation drawings with proper positioning
 export async function generateMathVisualization(
     equation: string,
     steps: string[]
 ): Promise<DrawingInstruction[]> {
     const instructions: DrawingInstruction[] = [];
-    let currentY = 80;
+    let currentY = 200; // Start in visible area
 
     // Draw the original equation
     instructions.push({
@@ -172,7 +209,7 @@ export async function generateMathVisualization(
         delay: 0
     });
 
-    currentY += 50;
+    currentY += 60;
 
     // Draw each step
     steps.forEach((step, index) => {
@@ -191,16 +228,16 @@ export async function generateMathVisualization(
             instructions.push({
                 type: 'arrow',
                 x: 100,
-                y: currentY + 20,
+                y: currentY + 25,
                 endX: 100,
-                endY: currentY + 40,
+                endY: currentY + 45,
                 color: '#3b82f6',
                 strokeWidth: 2,
                 delay: (index + 1) * 1000 + 500
             });
         }
 
-        currentY += 60;
+        currentY += 70; // Adequate spacing between steps
     });
 
     return instructions;
