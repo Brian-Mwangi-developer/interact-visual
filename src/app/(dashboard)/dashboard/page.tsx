@@ -1,9 +1,9 @@
 "use client";
 import { ConceptSidebar } from "@/components/concept-sidebar";
-import { DrawingArea } from "@/components/drawing-area";
+import DrawingArea from "@/components/drawing-area";
 import { TopBar } from "@/components/top-bar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { VoiceAssistant } from "@/components/voice-assistant";
+// import { VoiceAssistant } from "@/components/voice-assistant";
 import { useState } from "react";
 
 const DashboardPage = () => {
@@ -22,8 +22,8 @@ const DashboardPage = () => {
                     <TopBar />
 
                     <div className="flex-1 relative">
-                        <DrawingArea subject="mathematics" />
-                        <VoiceAssistant />
+                        <DrawingArea />
+                        {/* <VoiceAssistant /> */}
                     </div>
                 </main>
             </div>

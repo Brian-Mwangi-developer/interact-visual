@@ -1,5 +1,6 @@
 // lib/excalidraw-utils-fixed.ts
 import { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
 import { DrawingInstruction } from './openai';
 
 // Generate unique IDs for Excalidraw elements
@@ -7,160 +8,87 @@ export const generateId = (): string => {
     return Math.random().toString(36).substr(2, 9);
 };
 
-// Generate fractional index (Excalidraw requirement)
-export const generateFractionalIndex = (): string => {
-    return Math.random().toString(36).substr(2, 9);
-};
-
-// Utility to create proper Excalidraw elements with correct types
+// Create Excalidraw element using the simplified skeleton API
 export function createExcalidrawElement(
     instruction: DrawingInstruction,
     index: number
 ): ExcalidrawElement {
-    // Base properties that all elements need
-    const baseProps = {
-        id: generateId(),
-        x: instruction.x,
-        y: instruction.y,
-        strokeColor: instruction.color || '#1e1e1e',
-        backgroundColor: 'transparent',
-        fillStyle: 'hachure' as const,
-        strokeWidth: instruction.strokeWidth || 2,
-        strokeStyle: 'solid' as const,
-        roughness: 1,
-        opacity: 100,
-        angle: 0,
-        seed: Math.floor(Math.random() * 1000000),
-        versionNonce: Math.floor(Math.random() * 1000000),
-        isDeleted: false,
-        groupIds: [],
-        frameId: null,
-        roundness: null,
-        boundElements: null,
-        updated: Date.now(),
-        link: null,
-        locked: false,
-        index: generateFractionalIndex(), // This needs to be a string (FractionalIndex)
-        customData: null
-    };
+    let elementSkeleton: any;
 
     switch (instruction.type) {
-        case 'text': {
-            const textWidth = (instruction.content || '').length * ((instruction.fontSize || 16) * 0.6);
-            const textHeight = instruction.fontSize || 16;
-
-            return {
-                ...baseProps,
+        case 'text':
+            elementSkeleton = {
                 type: 'text',
-                text: instruction.content || '',
+                x: instruction.x,
+                y: instruction.y,
+                text: instruction.content || 'Default text',
                 fontSize: instruction.fontSize || 16,
-                fontFamily: 1,
-                textAlign: 'left' as const,
-                verticalAlign: 'top' as const,
-                containerId: null,
-                originalText: instruction.content || '',
-                width: textWidth,
-                height: textHeight,
-                baseline: textHeight,
-                lineHeight: 1.25,
-                autoResize: true
-            } as ExcalidrawElement;
-        }
+                strokeColor: instruction.color || '#1e1e1e',
+            };
+            break;
 
-        case 'line': {
-            const endX = instruction.endX || instruction.x + 100;
-            const endY = instruction.endY || instruction.y;
-            const width = Math.abs(endX - instruction.x);
-            const height = Math.abs(endY - instruction.y);
-
-            return {
-                ...baseProps,
+        case 'line':
+            elementSkeleton = {
                 type: 'line',
-                points: [
-                    [0, 0],
-                    [endX - instruction.x, endY - instruction.y]
-                ],
-                lastCommittedPoint: null,
-                startBinding: null,
-                endBinding: null,
-                startArrowhead: null,
-                endArrowhead: null,
-                width: Math.max(width, 1),
-                height: Math.max(height, 1),
-            } as ExcalidrawElement;
-        }
+                x: instruction.x,
+                y: instruction.y,
+                strokeColor: instruction.color || '#1e1e1e',
+                strokeWidth: instruction.strokeWidth || 2,
+            };
+            break;
 
-        case 'arrow': {
-            const endX = instruction.endX || instruction.x + 100;
-            const endY = instruction.endY || instruction.y + 50;
-            const width = Math.abs(endX - instruction.x);
-            const height = Math.abs(endY - instruction.y);
-
-            return {
-                ...baseProps,
+        case 'arrow':
+            elementSkeleton = {
                 type: 'arrow',
-                points: [
-                    [0, 0],
-                    [endX - instruction.x, endY - instruction.y]
-                ],
-                lastCommittedPoint: null,
-                startBinding: null,
-                endBinding: null,
-                startArrowhead: null,
-                endArrowhead: 'arrow' as const,
-                width: Math.max(width, 1),
-                height: Math.max(height, 1),
-            } as ExcalidrawElement;
-        }
+                x: instruction.x,
+                y: instruction.y,
+                strokeColor: instruction.color || '#1e1e1e',
+                strokeWidth: instruction.strokeWidth || 2,
+                endArrowhead: 'triangle',
+            };
+            break;
 
-        case 'rectangle': {
-            return {
-                ...baseProps,
+        case 'rectangle':
+            elementSkeleton = {
                 type: 'rectangle',
+                x: instruction.x,
+                y: instruction.y,
                 width: instruction.width || 100,
                 height: instruction.height || 50,
-            } as ExcalidrawElement;
-        }
+                strokeColor: instruction.color || '#1e1e1e',
+                strokeWidth: instruction.strokeWidth || 2,
+                backgroundColor: 'transparent',
+            };
+            break;
 
-        case 'ellipse': {
-            return {
-                ...baseProps,
+        case 'ellipse':
+            elementSkeleton = {
                 type: 'ellipse',
+                x: instruction.x,
+                y: instruction.y,
                 width: instruction.width || 100,
                 height: instruction.height || 50,
-            } as ExcalidrawElement;
-        }
+                strokeColor: instruction.color || '#1e1e1e',
+                strokeWidth: instruction.strokeWidth || 2,
+                backgroundColor: 'transparent',
+            };
+            break;
 
-        default: {
+        default:
             // Default to text element
-            const defaultText = instruction.content || 'Unknown element';
-            const textWidth = defaultText.length * 10;
-
-            return {
-                ...baseProps,
+            elementSkeleton = {
                 type: 'text',
-                text: defaultText,
-                fontSize: 16,
-                fontFamily: 1,
-                textAlign: 'left' as const,
-                verticalAlign: 'top' as const,
-                containerId: null,
-                originalText: defaultText,
-                width: textWidth,
-                height: 16,
-                baseline: 16,
-                lineHeight: 1.25,
-                autoResize: true
-            } as ExcalidrawElement;
-        }
+                x: instruction.x,
+                y: instruction.y,
+                text: instruction.content || 'Unknown element',
+                fontSize: instruction.fontSize || 16,
+                strokeColor: instruction.color || '#1e1e1e',
+            };
     }
-}
 
-// Convert array of drawing instructions to Excalidraw elements
-export function convertToExcalidrawElements(
-    instructions: DrawingInstruction[]
-): ExcalidrawElement[] {
-    return instructions.map((instruction, index) => createExcalidrawElement(instruction, index));
+    // Convert skeleton to full Excalidraw element
+    const elements = convertToExcalidrawElements([elementSkeleton]);
+    return elements[0];
 }
 
 // Create a step-by-step animation by grouping elements by delay
@@ -190,118 +118,109 @@ export function clearCanvas(): ExcalidrawElement[] {
     return [];
 }
 
-// Helper function to add mathematical symbols and formatting
-export function formatMathText(text: string): string {
-    // Basic math formatting - you can expand this
-    return text
-        .replace(/\*\*/g, '^') // ** to superscript
-        .replace(/sqrt\((.*?)\)/g, '√($1)')
-        .replace(/pi/g, 'π')
-        .replace(/alpha/g, 'α')
-        .replace(/beta/g, 'β')
-        .replace(/gamma/g, 'γ')
-        .replace(/theta/g, 'θ')
-        .replace(/delta/g, 'δ')
-        .replace(/sum/g, '∑')
-        .replace(/integral/g, '∫')
-        .replace(/infinity/g, '∞');
-}
-
-// Create a title element for the canvas - positioned in visible area
+// Create a title element for the canvas using the skeleton API
 export function createTitle(title: string, y: number = 100): ExcalidrawElement {
-    return createExcalidrawElement({
-        type: 'text',
-        content: title,
-        x: 100, // Moved to visible area
+    const titleSkeleton = {
+        type: 'text' as const,
+        x: 100,
         y: y,
+        text: title,
         fontSize: 20,
-        color: '#1f2937'
-    }, 0);
+        strokeColor: '#1f2937'
+    };
+
+    const elements = convertToExcalidrawElements([titleSkeleton]);
+    return elements[0];
 }
 
-// Create a step indicator - positioned in visible area
+// Create a step indicator using the skeleton API
 export function createStepIndicator(
     stepNumber: number,
     totalSteps: number,
     x: number = 100,
     y: number = 150
 ): ExcalidrawElement {
-    return createExcalidrawElement({
-        type: 'text',
-        content: `Step ${stepNumber} of ${totalSteps}`,
+    const stepSkeleton = {
+        type: 'text' as const,
         x: x,
         y: y,
+        text: `Step ${stepNumber} of ${totalSteps}`,
         fontSize: 16,
-        color: '#3b82f6'
-    }, 0);
-}
-
-// Helper to create a box around content
-export function createContentBox(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    color: string = '#e5e7eb'
-): ExcalidrawElement {
-    return createExcalidrawElement({
-        type: 'rectangle',
-        x: x,
-        y: y,
-        width: width,
-        height: height,
-        color: color
-    }, 0);
-}
-
-// Helper to create mathematical expressions with proper spacing - positioned in visible area
-export function createMathExpression(
-    expression: string,
-    x: number,
-    y: number,
-    fontSize: number = 18
-): ExcalidrawElement[] {
-    const formattedExpression = formatMathText(expression);
-
-    return [
-        createExcalidrawElement({
-            type: 'text',
-            content: formattedExpression,
-            x: x,
-            y: y,
-            fontSize: fontSize,
-            color: '#1f2937'
-        }, 0)
-    ];
-}
-
-// Create a visual separator line
-export function createSeparator(
-    x: number,
-    y: number,
-    width: number,
-    color: string = '#d1d5db'
-): ExcalidrawElement {
-    return createExcalidrawElement({
-        type: 'line',
-        x: x,
-        y: y,
-        endX: x + width,
-        endY: y,
-        color: color,
-        strokeWidth: 1
-    }, 0);
-}
-
-// Get canvas center coordinates for better positioning
-export function getCanvasCenter(): { x: number; y: number } {
-    return { x: 400, y: 300 }; // Assuming standard canvas size
-}
-
-// Helper to position elements in a readable flow
-export function getNextPosition(currentY: number, spacing: number = 40): { x: number; y: number } {
-    return {
-        x: 100, // Standard left margin
-        y: currentY + spacing
+        strokeColor: '#3b82f6'
     };
+
+    const elements = convertToExcalidrawElements([stepSkeleton]);
+    return elements[0];
+}
+
+// Helper function to create multiple elements at once
+export function createMultipleElements(instructions: DrawingInstruction[]): ExcalidrawElement[] {
+    const skeletons = instructions.map(instruction => {
+        switch (instruction.type) {
+            case 'text':
+                return {
+                    type: 'text' as const,
+                    x: instruction.x,
+                    y: instruction.y,
+                    text: instruction.content || 'Default text',
+                    fontSize: instruction.fontSize || 16,
+                    strokeColor: instruction.color || '#1e1e1e',
+                };
+
+            case 'line':
+                return {
+                    type: 'line' as const,
+                    x: instruction.x,
+                    y: instruction.y,
+                    strokeColor: instruction.color || '#1e1e1e',
+                    strokeWidth: instruction.strokeWidth || 2,
+                };
+
+            case 'arrow':
+                return {
+                    type: 'arrow' as const,
+                    x: instruction.x,
+                    y: instruction.y,
+                    strokeColor: instruction.color || '#1e1e1e',
+                    strokeWidth: instruction.strokeWidth || 2,
+                    endArrowhead: 'triangle' as const,
+                };
+
+            case 'rectangle':
+                return {
+                    type: 'rectangle' as const,
+                    x: instruction.x,
+                    y: instruction.y,
+                    width: instruction.width || 100,
+                    height: instruction.height || 50,
+                    strokeColor: instruction.color || '#1e1e1e',
+                    strokeWidth: instruction.strokeWidth || 2,
+                    backgroundColor: 'transparent',
+                };
+
+            case 'ellipse':
+                return {
+                    type: 'ellipse' as const,
+                    x: instruction.x,
+                    y: instruction.y,
+                    width: instruction.width || 100,
+                    height: instruction.height || 50,
+                    strokeColor: instruction.color || '#1e1e1e',
+                    strokeWidth: instruction.strokeWidth || 2,
+                    backgroundColor: 'transparent',
+                };
+
+            default:
+                return {
+                    type: 'text' as const,
+                    x: instruction.x,
+                    y: instruction.y,
+                    text: instruction.content || 'Unknown element',
+                    fontSize: instruction.fontSize || 16,
+                    strokeColor: instruction.color || '#1e1e1e',
+                };
+        }
+    });
+
+    return convertToExcalidrawElements(skeletons);
 }

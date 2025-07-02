@@ -45,8 +45,10 @@ Given the question: "${question}"
 
 Please provide a detailed step-by-step solution that can be drawn on a canvas. 
 For each step, provide:
-1. A clear explanation of what's happening
+1. A clear,concise explanation (2-3 sentences)
 2. Specific drawing instructions with coordinates
+Make sure each step builds upon the previous one, with gradual progression.
+            Favor more steps with simpler explanations over fewer complex steps.
 
 IMPORTANT POSITIONING GUIDELINES:
 - Canvas visible area is approximately 800x600 pixels
