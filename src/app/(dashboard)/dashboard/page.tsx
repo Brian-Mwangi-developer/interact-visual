@@ -1,4 +1,5 @@
 "use client";
+import { ChatArea } from "@/components/chat-area";
 import { ConceptSidebar } from "@/components/concept-sidebar";
 import DrawingArea from "@/components/drawing-area";
 import { TopBar } from "@/components/top-bar";
@@ -13,17 +14,19 @@ const DashboardPage = () => {
     return (
         <SidebarProvider>
             <div className="min-h-screen flex w-full bg-gray-50">
-
-                <ConceptSidebar
-                    selectedConcept={selectedConcept}
-                    onConceptSelect={setSelectedConcept}
-                />
+                <ConceptSidebar selectedConcept={selectedConcept} onConceptSelect={setSelectedConcept} />
                 <main className="flex-1 flex flex-col ml-20">
                     <TopBar />
+                    <div className="flex-1 flex relative">
+                        {/* Drawing Area */}
+                        <div className="flex-1 relative">
+                            <DrawingArea />
+                        </div>
 
-                    <div className="flex-1 relative">
-                        <DrawingArea />
-                        {/* <VoiceAssistant /> */}
+                        {/* Chat Area */}
+                        <div className="w-96 flex-shrink-0">
+                            <ChatArea className="h-full" />
+                        </div>
                     </div>
                 </main>
             </div>
@@ -32,3 +35,5 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+
+
